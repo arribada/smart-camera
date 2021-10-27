@@ -1,6 +1,6 @@
-FROM python:2.7-slim-buster
-
 #docker run -it --privileged -v /home:/home/host python:2.7-slim-buster /bin/bash
+
+FROM python:2.7-slim-buster
 
 ENV PYTHONPATH=/usr/lib/python2.7/dist-packages
 RUN apt-get update && apt-get install -y --no-install-recommends git python-opencv python-numpy

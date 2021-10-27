@@ -3,18 +3,18 @@ package main
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"os"
-	"os/exec"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/arribada/smart-camera/pkg/capturer"
+	"github.com/arribada/smart-camera/pkg/uploader"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/joho/godotenv"
-	"github.com/minio/minio-go/v7"
-	"github.com/minio/minio-go/v7/pkg/credentials"
+	"github.com/oklog/run"
 )
 
 func main() {
@@ -51,29 +51,59 @@ func main() {
 		}
 	}
 
-	filename := "data/output.png"
-	cmd := exec.Command("pylepton_capture", filename)
-	stdout, err := cmd.Output()
+	globalCtx, globalShutdown := context.WithCancel(context.Background())
+	defer globalShutdown()
 
-	ExitOnError(logger, err, "capture run")
+	// We define our run groups here.
+	var g run.Group
+	// Run groups.
+	{
+		// Handle interupts.
+		g.Add(run.SignalHandler(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM))
 
-	level.Info(logger).Log("msg", "capture command run", "output", string(stdout))
+		capt, err := capturer.New(
+			globalCtx,
+			logger,
+			capturer.Config{
+				DataFolder: "data",
+				Interval:   10 * time.Second,
+			},
+		)
+		ExitOnError(logger, err, "creating component:"+capturer.ComponentName)
 
-	// Initialize minio client object.
-	clt, err := minio.New("storage.googleapis.com", &minio.Options{
-		Creds:  credentials.NewStaticV4(os.Getenv("STORAGE_KEY_ID"), os.Getenv("STORAGE_KEY_SECRET"), ""),
-		Secure: true,
-	})
-	ExitOnError(logger, err, "initalize the storage upload client")
+		g.Add(func() error {
+			capt.Start()
+			level.Info(logger).Log("msg", "shutdown complete", "component", capturer.ComponentName)
+			return nil
+		}, func(error) {
+			capt.Stop()
+		})
 
-	objectName := filename
-	filePath := filename
-	contentType := "image/png"
+		upl, err := uploader.New(
+			globalCtx,
+			logger,
+			uploader.Config{
+				DataFolder: "data",
+				Interval:   10 * time.Minute,
+			},
+		)
+		ExitOnError(logger, err, "creating component:"+uploader.ComponentName)
 
-	n, err := clt.FPutObject(context.Background(), "arribada-smart", objectName, filePath, minio.PutObjectOptions{ContentType: contentType})
-	ExitOnError(logger, err, "uploading file")
+		g.Add(func() error {
+			upl.Start()
+			level.Info(logger).Log("msg", "shutdown complete", "component", uploader.ComponentName)
+			return nil
+		}, func(error) {
+			upl.Stop()
+		})
+	}
 
-	level.Info(logger).Log("msg", "upload complete", "file", objectName, "metadata", fmt.Sprintf("%+v", n))
+	if err := g.Run(); err != nil {
+		level.Error(logger).Log("msg", "main exited with error", "err", err)
+		return
+	}
+
+	level.Info(logger).Log("msg", "main shutdown complete")
 }
 
 const DefaultTimeFormat = "02 Jan 15:04:05.00"

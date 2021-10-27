@@ -5,7 +5,10 @@ go 1.17
 require (
 	github.com/go-kit/log v0.2.0
 	github.com/joho/godotenv v1.4.0
+	github.com/kennygrant/sanitize v1.2.4
 	github.com/minio/minio-go/v7 v7.0.15
+	github.com/oklog/run v1.1.0
+	github.com/pkg/errors v0.9.1
 )
 
 require (
