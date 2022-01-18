@@ -26,7 +26,7 @@ type Config struct {
 }
 
 func New(ctx context.Context, logger log.Logger, cfg Config) (*Uploader, error) {
-	mClt, err := minio.New("storage.googleapis.com", &minio.Options{
+	mClt, err := minio.New("s3.amazonaws.com", &minio.Options{
 		Creds:  credentials.NewStaticV4(os.Getenv("STORAGE_KEY_ID"), os.Getenv("STORAGE_KEY_SECRET"), ""),
 		Secure: true,
 	})
@@ -88,7 +88,7 @@ func (self *Uploader) upload() error {
 		if !info.IsDir() {
 			contentType := "image/png"
 
-			n, err := self.uploadClient.FPutObject(context.Background(), "arribada-smart", path, path, minio.PutObjectOptions{ContentType: contentType})
+			n, err := self.uploadClient.FPutObject(context.Background(), "arribada-smart-camera", path, path, minio.PutObjectOptions{ContentType: contentType})
 			if err != nil {
 				return errors.Wrap(err, "put object")
 			}

@@ -75,9 +75,9 @@ func (self *Capturer) capture() error {
 	fPath := filepath.Join("data/", fName)
 
 	cmd := exec.Command("pylepton_capture", fPath)
-	stdout, err := cmd.Output()
+	stdout, err := cmd.CombinedOutput()
 	if err != nil {
-		return errors.Wrap(err, "running capture script")
+		return errors.Wrapf(err, "running capture script:%v", string(stdout))
 	}
 
 	level.Info(self.logger).Log("msg", "capture command run", "path", fPath, "output", string(stdout))

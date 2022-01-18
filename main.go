@@ -66,7 +66,7 @@ func main() {
 			logger,
 			capturer.Config{
 				DataFolder: "data",
-				Interval:   10 * time.Second,
+				Interval:   3 * time.Second,
 			},
 		)
 		ExitOnError(logger, err, "creating component:"+capturer.ComponentName)
@@ -84,13 +84,16 @@ func main() {
 			logger,
 			uploader.Config{
 				DataFolder: "data",
-				Interval:   10 * time.Minute,
+				Interval:   5 * time.Second,
 			},
 		)
 		ExitOnError(logger, err, "creating component:"+uploader.ComponentName)
 
 		g.Add(func() error {
-			upl.Start()
+			if err := upl.Start(); err != nil {
+				level.Error(logger).Log("msg", "starting the uploader", "err", err)
+			}
+
 			level.Info(logger).Log("msg", "shutdown complete", "component", uploader.ComponentName)
 			return nil
 		}, func(error) {
