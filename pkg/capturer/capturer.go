@@ -23,11 +23,18 @@ type Config struct {
 	DataFolder string
 	Interval   time.Duration
 	LogLevel   string
+	Ext        string `enum:".png,.jpg" default:".png"`
 }
 
 func New(ctx context.Context, logger log.Logger, cfg Config) (*Capturer, error) {
 	if cfg.DataFolder == "" {
 		return nil, errors.New("upload dir data folder can't be empty")
+	}
+	if cfg.Ext != ".png" && cfg.Ext != ".jpg" {
+		return nil, errors.New("extension must be in a set [.jpg, .png]")
+	}
+	if cfg.Interval < time.Millisecond*100 {
+		return nil, errors.New("interval must be >= 100ms")
 	}
 
 	if err := os.MkdirAll(cfg.DataFolder, os.ModePerm); err != nil {
@@ -55,7 +62,8 @@ type Capturer struct {
 }
 
 func (self *Capturer) Start() error {
-	level.Info(self.logger).Log("msg", "starting")
+	level.Info(self.logger).Log("msg", "starting", "every", self.config.Interval,
+		"dir", self.config.DataFolder, "ext", self.config.Ext)
 
 	for {
 		select {
@@ -70,9 +78,9 @@ func (self *Capturer) Start() error {
 }
 
 func (self *Capturer) capture() error {
-	fName := sanitize.Accents(time.Now().UTC().Format("02 Jan 15:04:05.99") + ".png")
+	fName := sanitize.Accents(time.Now().UTC().Format("02 Jan 15:04:05.99") + self.config.Ext)
 	fName = strings.Replace(fName, " ", "-", -1)
-	fPath := filepath.Join("data/", fName)
+	fPath := filepath.Join(self.config.DataFolder, fName)
 
 	cmd := exec.Command("pylepton_capture", fPath)
 	stdout, err := cmd.CombinedOutput()

@@ -12,6 +12,7 @@ require (
 )
 
 require (
+	github.com/alecthomas/kong v0.4.0
 	github.com/dustin/go-humanize v1.0.0 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/google/uuid v1.1.1 // indirect

@@ -1,3 +1,4 @@
 .env
 smart-camera
 data
+Makefile.options
