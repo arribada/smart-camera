@@ -2,12 +2,14 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"syscall"
 	"time"
 
 	"github.com/alecthomas/kong"
 	"github.com/arribada/smart-camera/pkg/capturer"
+	"github.com/arribada/smart-camera/pkg/edgeimpulse"
 	"github.com/go-kit/log"
 	"github.com/go-kit/log/level"
 	"github.com/oklog/run"
@@ -15,7 +17,8 @@ import (
 )
 
 var cli struct {
-	Capture capturer.Config `cmd:"" help:"Captures images to directory"`
+	Capture     capturer.Config    `cmd:"" help:"Captures images to directory"`
+	EdgeImpulse edgeimpulse.Config `cmd:"" help:"Edge Impulse commands"`
 }
 
 func main() {
@@ -28,10 +31,14 @@ func main() {
 	switch kongCtx.Command() {
 	case "capture":
 		runCapture(globalCtx, logger, cli.Capture)
+	case "edge-impulse remove-all":
+		runEdgeImpRemoveAll(globalCtx, logger, cli.EdgeImpulse)
+	case "edge-impulse upload <file>":
+		runEdgeImpUpload(globalCtx, logger, cli.EdgeImpulse)
 	default:
 		ExitOnError(logger, errors.Errorf("unknown cmd: %s", kongCtx.Command()), "initialization")
 	}
-	
+
 	level.Info(logger).Log("msg", "main shutdown complete")
 }
 
@@ -73,4 +80,32 @@ func runCapture(ctx context.Context, logger log.Logger, cfg capturer.Config) {
 		level.Error(logger).Log("msg", "main exited with error", "err", err)
 		return
 	}
+}
+
+func runEdgeImpRemoveAll(ctx context.Context, logger log.Logger, cfg edgeimpulse.Config) {
+	if !confirm(logger, "WARNING! Remove all training data for project? Type (Remove)/(n)o: ", "Remove") {
+		level.Info(logger).Log("msg", "canceled")
+		return
+	}
+	ei, err := edgeimpulse.New(ctx, logger, cfg)
+	ExitOnError(logger, err, "creating component:"+edgeimpulse.ComponentName)
+	err = ei.RemoveAll()
+	ExitOnError(logger, err, "removeAll failed")
+	level.Info(logger).Log("msg", "done")
+}
+
+func runEdgeImpUpload(ctx context.Context, logger log.Logger, cfg edgeimpulse.Config) {
+	ei, err := edgeimpulse.New(ctx, logger, cfg)
+	ExitOnError(logger, err, "creating component:"+edgeimpulse.ComponentName)
+	err = ei.Upload(cfg.Upload.File, cfg.Upload.Label, cfg.Upload.HMAC)
+	ExitOnError(logger, err, "upload failed")
+	level.Info(logger).Log("msg", "done")
+}
+
+func confirm(logger log.Logger, msg, check string) bool {
+	var response string
+	fmt.Fprint(os.Stdout, msg)
+	_, err := fmt.Scanln(&response)
+	ExitOnError(logger, err, "confirm failed")
+	return response == check
 }

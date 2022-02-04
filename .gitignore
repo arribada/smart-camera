@@ -2,3 +2,4 @@
 smart-camera
 data
 Makefile.options
+samples/**
