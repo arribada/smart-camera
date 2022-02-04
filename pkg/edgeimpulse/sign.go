@@ -12,7 +12,7 @@ import (
 
 const jsonPayload = `{
 "protected": {"ver": "v1", "alg": "HS256"}, 
-"signature": %s, 
+"signature": "%s", 
 "payload": {"device_name": "test-dev",
 	"device_type": "phone",
 	"interval_ms": 0,

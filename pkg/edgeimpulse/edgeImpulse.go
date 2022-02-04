@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -32,8 +31,7 @@ type removeAllCfg struct {
 type uploadCfg struct {
 	Label string `default:"Unknown" short:"l" help:"File label to assign on EdgeImpulse"`
 	HMAC  string `env:"HMAC" help:"HMAC string for signing a file"`
-
-	File string `arg:"" help:"File to upload"`
+	File  string `arg:"" help:"File to upload"`
 }
 
 type Wrapper struct {
@@ -55,12 +53,13 @@ func New(ctx context.Context, logger log.Logger, cfg Config) (*Wrapper, error) {
 	return res, nil
 }
 
+//RemoveAll drops all training files from EdgeImpulse
 func (w *Wrapper) RemoveAll() error {
 	if w.config.Project == "" {
 		return errors.New("project can't be empty")
 	}
-
 	level.Info(w.logger).Log("msg", "removeAll", "project", w.config.Project)
+
 	url := fmt.Sprintf("https://studio.edgeimpulse.com/v1/api/%s/raw-data/delete-all", w.config.Project)
 	req, err := http.NewRequest(http.MethodPost, url, nil)
 	if err != nil {
@@ -71,9 +70,11 @@ func (w *Wrapper) RemoveAll() error {
 	ctx, cf := context.WithTimeout(w.ctx, time.Second*10)
 	defer cf()
 	req = req.WithContext(ctx)
+
 	return w.invoke(req)
 }
 
+//Upload uploads file to EdgeImpulse
 func (w *Wrapper) Upload(file, label, hmac string) error {
 	if file == "" {
 		return errors.New("no file")
@@ -91,23 +92,16 @@ func (w *Wrapper) Upload(file, label, hmac string) error {
 	if err != nil {
 		return errors.Wrapf(err, "can't sign file data")
 	}
+
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
-	part, err := writer.CreateFormFile("attachments[]", "metadata.json")
+	err = addFile(writer, "metadata.json", "application/json", strings.NewReader(signData))
 	if err != nil {
-		return errors.Wrapf(err, "can't prepare request")
+		return errors.Wrapf(err, "can't add json header file")
 	}
-	_, err = io.Copy(part, strings.NewReader(signData))
+	err = addFile(writer, filepath.Base(file), "image/jpeg", bytes.NewReader(fileData))
 	if err != nil {
-		return errors.Wrapf(err, "can't prepare request")
-	}
-	part, err = writer.CreateFormFile("attachments[]", filepath.Base(file))
-	if err != nil {
-		return errors.Wrapf(err, "can't prepare request")
-	}
-	_, err = io.Copy(part, bytes.NewReader(fileData))
-	if err != nil {
-		return errors.Wrapf(err, "can't prepare request")
+		return errors.Wrapf(err, "can't add image")
 	}
 	writer.Close()
 	req, err := http.NewRequest(http.MethodPost, "https://ingestion.edgeimpulse.com/api/training/data", body)
@@ -136,22 +130,4 @@ func (w *Wrapper) invoke(req *http.Request) error {
 	}
 	defer resp.Body.Close()
 	return validateResp(resp)
-}
-
-func validateResp(resp *http.Response) error {
-	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
-		return fmt.Errorf("resp code: %d%s", resp.StatusCode, getBodyStr(resp.Body))
-	}
-	return nil
-}
-
-func getBodyStr(rd io.Reader) string {
-	b, err := ioutil.ReadAll(rd)
-	if err != nil {
-		return "\ncan't read body"
-	}
-	if len(b) == 0 {
-		return ""
-	}
-	return "\n" + string(b)
 }
