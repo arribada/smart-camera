@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -35,9 +36,10 @@ type uploadCfg struct {
 }
 
 type Wrapper struct {
-	logger log.Logger
-	config Config
-	ctx    context.Context
+	logger     log.Logger
+	config     Config
+	ctx        context.Context
+	httpClient http.Client
 }
 
 func New(ctx context.Context, logger log.Logger, cfg Config) (*Wrapper, error) {
@@ -48,6 +50,12 @@ func New(ctx context.Context, logger log.Logger, cfg Config) (*Wrapper, error) {
 		logger: log.With(logger, "component", ComponentName),
 		config: cfg,
 		ctx:    ctx,
+		httpClient: http.Client{Transport: &http.Transport{
+			MaxIdleConns:        5,
+			MaxConnsPerHost:     5,
+			MaxIdleConnsPerHost: 5,
+			IdleConnTimeout:     time.Second * 90,
+		}},
 	}
 
 	return res, nil
@@ -124,10 +132,14 @@ func (w *Wrapper) Upload(file, label, hmac string) error {
 
 func (w *Wrapper) invoke(req *http.Request) error {
 	level.Info(w.logger).Log("msg", "invoke", "url", req.URL.String())
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := w.httpClient.Do(req)
 	if err != nil {
 		return errors.Wrapf(err, "can't invoke %s", req.URL.String())
 	}
-	defer resp.Body.Close()
+	defer func() {
+		_, _ = io.Copy(io.Discard, resp.Body)
+		_ = resp.Body.Close()
+	}()
+
 	return validateResp(resp)
 }
