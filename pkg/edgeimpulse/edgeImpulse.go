@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -20,19 +21,20 @@ import (
 const ComponentName = "EdgeImpulse Wrapper"
 
 type Config struct {
-	Project   string        `env:"PROJECT" short:"p" help:"Project ID on EdgeImpulse"`
-	ApiKey    string        `env:"API_KEY" name:"api-key" help:"API key for request auth on EdgeImpulse"`
-	RemoveAll *removeAllCfg `cmd:"" help:"Removes all training data from project"`
-	Upload    *uploadCfg    `cmd:"" help:"Uploads one file to edge impulse"`
+	Project    string        `env:"PROJECT" short:"p" help:"Project ID on EdgeImpulse"`
+	ApiKey     string        `env:"API_KEY" name:"api-key" help:"API key for request auth on EdgeImpulse"`
+	RemoveAll  *removeAllCfg `cmd:"" help:"Removes all training data from project"`
+	Upload     *uploadCfg    `cmd:"" help:"Uploads one file to EdgeImpulse"`
+	UploadMany *uploadCfg    `cmd:"" help:"Uploads all files from directory to EdgeImpulse"`
 }
 
 type removeAllCfg struct {
 }
 
 type uploadCfg struct {
-	Label string `default:"Unknown" short:"l" help:"File label to assign on EdgeImpulse"`
-	HMAC  string `env:"HMAC" help:"HMAC string for signing a file"`
-	File  string `arg:"" help:"File to upload"`
+	Label     string `default:"Unknown" short:"l" help:"File label to assign on EdgeImpulse"`
+	HMAC      string `env:"HMAC" help:"HMAC string for signing a file"`
+	FileOrDir string `arg:"" help:"File or dir to upload"`
 }
 
 type Wrapper struct {
@@ -90,7 +92,7 @@ func (w *Wrapper) Upload(file, label, hmac string) error {
 	if hmac == "" {
 		return errors.New("no hmac")
 	}
-	level.Info(w.logger).Log("msg", "upload", "file", w.config.Upload.File)
+	level.Info(w.logger).Log("msg", "upload", "file", file)
 
 	fileData, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -107,7 +109,7 @@ func (w *Wrapper) Upload(file, label, hmac string) error {
 	if err != nil {
 		return errors.Wrapf(err, "can't add json header file")
 	}
-	err = addFile(writer, filepath.Base(file), "image/jpeg", bytes.NewReader(fileData))
+	err = addFile(writer, filepath.Base(file), getContentType(file), bytes.NewReader(fileData))
 	if err != nil {
 		return errors.Wrapf(err, "can't add image")
 	}
@@ -128,6 +130,35 @@ func (w *Wrapper) Upload(file, label, hmac string) error {
 	defer cf()
 	req = req.WithContext(ctx)
 	return w.invoke(req)
+}
+
+func getContentType(file string) string {
+	if strings.HasSuffix(file, ".png") {
+		return "image/png"
+	}
+	return "image/jpeg"
+}
+
+//UploadDir uploads images from directory to EdgeImpulse
+func (w *Wrapper) UploadDir(dir, label, hmac string) error {
+	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		select {
+		case <-w.ctx.Done():
+			level.Info(w.logger).Log("msg", "canceled")
+			return w.ctx.Err()
+		default:
+		}
+		if err != nil {
+			return err
+		}
+		if !info.IsDir() && (strings.HasSuffix(path, ".jpg") || strings.HasSuffix(path, ".png")) {
+			err := w.Upload(path, label, hmac)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	})
 }
 
 func (w *Wrapper) invoke(req *http.Request) error {

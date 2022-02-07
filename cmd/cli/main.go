@@ -33,8 +33,10 @@ func main() {
 		runCapture(globalCtx, logger, cli.Capture)
 	case "edge-impulse remove-all":
 		runEdgeImpRemoveAll(globalCtx, logger, cli.EdgeImpulse)
-	case "edge-impulse upload <file>":
+	case "edge-impulse upload <file-or-dir>":
 		runEdgeImpUpload(globalCtx, logger, cli.EdgeImpulse)
+	case "edge-impulse upload-many <file-or-dir>":
+		runEdgeImpUploadMany(globalCtx, globalShutdown, logger, cli.EdgeImpulse)
 	default:
 		ExitOnError(logger, errors.Errorf("unknown cmd: %s", kongCtx.Command()), "initialization")
 	}
@@ -58,23 +60,22 @@ func ExitOnError(logger log.Logger, err error, msg string) {
 }
 
 func runCapture(ctx context.Context, logger log.Logger, cfg capturer.Config) {
+	capt, err := capturer.New(ctx, logger, cfg)
+	ExitOnError(logger, err, "creating component:"+capturer.ComponentName)
+	runInGroup(logger, func() error {
+		capt.Start()
+		level.Info(logger).Log("msg", "shutdown complete", "component", capturer.ComponentName)
+		return nil
+	}, func(error) { capt.Stop() })
+}
+
+func runInGroup(logger log.Logger, startF func() error, stopF func(error)) {
 	var g run.Group
 	// Run groups.
-	{
-		// Handle interupts.
-		g.Add(run.SignalHandler(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM))
+	// Handle interupts.
+	g.Add(run.SignalHandler(context.Background(), syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM))
 
-		capt, err := capturer.New(ctx, logger, cfg)
-		ExitOnError(logger, err, "creating component:"+capturer.ComponentName)
-
-		g.Add(func() error {
-			capt.Start()
-			level.Info(logger).Log("msg", "shutdown complete", "component", capturer.ComponentName)
-			return nil
-		}, func(error) {
-			capt.Stop()
-		})
-	}
+	g.Add(startF, stopF)
 
 	if err := g.Run(); err != nil {
 		level.Error(logger).Log("msg", "main exited with error", "err", err)
@@ -97,9 +98,21 @@ func runEdgeImpRemoveAll(ctx context.Context, logger log.Logger, cfg edgeimpulse
 func runEdgeImpUpload(ctx context.Context, logger log.Logger, cfg edgeimpulse.Config) {
 	ei, err := edgeimpulse.New(ctx, logger, cfg)
 	ExitOnError(logger, err, "creating component:"+edgeimpulse.ComponentName)
-	err = ei.Upload(cfg.Upload.File, cfg.Upload.Label, cfg.Upload.HMAC)
+	err = ei.Upload(cfg.Upload.FileOrDir, cfg.Upload.Label, cfg.Upload.HMAC)
 	ExitOnError(logger, err, "upload failed")
 	level.Info(logger).Log("msg", "done")
+}
+
+func runEdgeImpUploadMany(ctx context.Context, cancelF func(), logger log.Logger, cfg edgeimpulse.Config) {
+
+	ei, err := edgeimpulse.New(ctx, logger, cfg)
+	ExitOnError(logger, err, "creating component:"+edgeimpulse.ComponentName)
+	runInGroup(logger, func() error {
+		return ei.UploadDir(cfg.UploadMany.FileOrDir, cfg.UploadMany.Label, cfg.UploadMany.HMAC)
+	}, func(err error) {
+		cancelF()
+	})
+
 }
 
 func confirm(logger log.Logger, msg, check string) bool {
