@@ -24,6 +24,7 @@ How to run
 ---------------
 
 '''python
+
 python picamera.py
 
 python motion.py /root/edge/linux-sdk-python/pictures
