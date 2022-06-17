@@ -1,6 +1,5 @@
 .env
 smart-camera
 data
-Makefile.options
-samples/**
-cmd/dumpreq**
+samples/uploadToEdgeImpulse/.idea/
+
