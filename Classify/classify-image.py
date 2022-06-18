@@ -87,6 +87,8 @@ def main(argv):
                             #cropped = cv2.rectangle(cropped, (bb['x'], bb['y']), (bb['x'] + bb['width'], bb['y'] + bb['height']), (255, 0, 0), 1)
                             if bb['value']>0.7:
                                 now = datetime.datetime.now()
+
+                                #save image on folder
                                 cv2.imwrite('./detected/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg',  cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
                     os.remove(file_path)      
                 time.sleep(5) 

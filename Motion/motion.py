@@ -40,10 +40,10 @@ class Rois():
 
 def get_image(dir_name,file_name):
     try:
-        ss=cv2.imread(os.path.join(dir_name, file_name), cv2.IMREAD_COLOR)
+        image=cv2.imread(os.path.join(dir_name, file_name), cv2.IMREAD_COLOR)
     except Exception as ex:
         print(ex)
-    return ss
+    return image
 
 
 def main(argv):
@@ -108,15 +108,13 @@ def main(argv):
                     cv2.imwrite('./motion/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg',  cv2.cvtColor(frame1, 0)) 
                     #cv2.rectangle(frame1,(x,y),(x+w,y+h), (0,255,245), 2)
 
-
             #cv2.drawContours(frame1,contours,-1,(0,255,0), 2)
-
-
-
             #cv2.imshow("feed", frame1)
             frame1=frame2
 
             frame2 = get_image(dir_name,file_name)
+
+            #remove old photo
             if filenametodel!='':
                 try:
                     os.remove(filenametodel)
@@ -124,9 +122,7 @@ def main(argv):
                     print(ex)
             filenametodel=os.path.join(dir_name, file_name)
 
-            #if cv2.waitKey(40)==27:
-            #    break
 
-    cv2.destroyAllWindows()
+    #cv2.destroyAllWindows()
 if __name__ == "__main__":
    main(sys.argv[1:])
