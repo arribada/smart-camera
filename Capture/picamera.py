@@ -36,8 +36,9 @@ def main(argv):
     while True:
         now = datetime.datetime.now()
         metadata = picam2.capture_file('./pictures/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg')
+        #metadata = picam2.capture_file('capture.jpg')
         time.sleep(sleep)
-        print(metadata)
+        #print(metadata)
 
 
 if __name__ == "__main__":

@@ -74,22 +74,26 @@ def main(argv):
                     res = runner.classify(features)
 
                     if "classification" in res["result"].keys():
-                        print('Result (%d ms.) ' % (res['timing']['dsp'] + res['timing']['classification']), end='')
+                        #print('Result (%d ms.) ' % (res['timing']['dsp'] + res['timing']['classification']), end='')
                         for label in labels:
                             score = res['result']['classification'][label]
-                            print('%s: %.2f\t' % (label, score), end='')
+                            #print('%s: %.2f\t' % (label, score), end='')
                         print('', flush=True)
 
                     elif "bounding_boxes" in res["result"].keys():
-                        print('Found %d bounding boxes (%d ms.)' % (len(res["result"]["bounding_boxes"]), res['timing']['dsp'] + res['timing']['classification']))
+                        #print('Found %d bounding boxes (%d ms.)' % (len(res["result"]["bounding_boxes"]), res['timing']['dsp'] + res['timing']['classification']))
                         for bb in res["result"]["bounding_boxes"]:
-                            print('\t%s (%.2f): x=%d y=%d w=%d h=%d' % (bb['label'], bb['value'], bb['x'], bb['y'], bb['width'], bb['height']))
+                            #print('\t%s (%.2f): x=%d y=%d w=%d h=%d' % (bb['label'], bb['value'], bb['x'], bb['y'], bb['width'], bb['height']))
                             #cropped = cv2.rectangle(cropped, (bb['x'], bb['y']), (bb['x'] + bb['width'], bb['y'] + bb['height']), (255, 0, 0), 1)
-                            if bb['value']>0.7:
-                                now = datetime.datetime.now()
-
-                                #save image on folder
-                                cv2.imwrite('./detected/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg',  cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
+                            #cv2.imwrite("detected.jpg",cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
+                            if bb['value']>0.85:
+                                cropped = cv2.rectangle(cropped, (bb['x'], bb['y']), (bb['x'] + bb['width'], bb['y'] + bb['height']), (255, 0, 0), 1)
+                                #cv2.imwrite("detected.jpg",cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
+                                #now = datetime.datetime.now()
+                    now = datetime.datetime.now()           
+                    cv2.imwrite('./detected/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg',  cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
+                    cv2.imwrite('./detectedTelegram/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg',  cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
+                    #cv2.imwrite("detected.jpg",cv2.cvtColor(cropped, cv2.COLOR_RGB2BGR)) 
                     os.remove(file_path)      
                 time.sleep(5) 
 
