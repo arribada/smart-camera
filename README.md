@@ -7,12 +7,12 @@ Aribbada Smart Camera - is a project which aims to perform with the help of arti
 
 Structure
 ============
-
+Capture app stream - captures and saves photos from a cctv camera
 Capture app - captures and saves photos from the camera connected to RaspberryPi
 Motion app - performs motion detection over a given perimeter
 Classify app - using neural network trained on Edge Impulse to detect objects in images from the input folder. Saves the images in which the objects of interest were found on "detected" folder
 Upload app - upload images from "detected" folder to Edge Impulse Addnotation Queue
-
+Upload Telegram - upload images from "detected" folder to Telegram group
 
 How to install
 ============

@@ -4,6 +4,9 @@ import datetime
 import sys, getopt
 import signal
 
+import ConfigLoader
+from ConfigLoader import *
+
 #used for closing
 picam2=None
 
@@ -14,31 +17,46 @@ def handler(signum, frame):
     exit(1)
 
 def main(argv):
+
+
     global picam2
     try:
         opts, args = getopt.getopt(argv, "h", ["--help"])
     except getopt.GetoptError:
         sys.exit(2)
-    sleep = float(args[0])
 
-    #initiate Picamera and set configure size photo
-    picam2 = Picamera2()
-    preview_config = picam2.preview_configuration(main={"size": (800, 600),"ExposureTime": 1000})
-    picam2.configure(preview_config)
-    picam2.start()
+    ConfigLoader.load_config(argv[0])
+    if ConfigLoader.get_value("CAPTURE_PICAMERA_FPS") ==0:
+        pass
+    else:
 
-    time.sleep(2)
+        sleep = float(ConfigLoader.get_value("CAPTURE_PICAMERA_FPS"))
 
-    #catch Ctrl C
-    signal.signal(signal.SIGINT, handler)
-    
-    #loop and save captured image every x seconds
-    while True:
-        now = datetime.datetime.now()
-        metadata = picam2.capture_file('./pictures/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg')
-        #metadata = picam2.capture_file('capture.jpg')
-        time.sleep(sleep)
-        #print(metadata)
+        #initiate Picamera and set configure size photo
+        picam2 = Picamera2()
+        preview_config = picam2.preview_configuration(main={"size": (800, 600),"ExposureTime": 1000})
+        picam2.configure(preview_config)
+        picam2.start()
+
+        time.sleep(2)
+
+        #catch Ctrl C
+        signal.signal(signal.SIGINT, handler)
+
+        #loop and save captured image every x seconds
+        while True:
+            start_time = time.time()
+
+            now = datetime.datetime.now()
+            metadata = picam2.capture_file('./pictures/'+str(now.hour)+str(now.minute)+str(now.second)+'.jpg')
+            #metadata = picam2.capture_file('capture.jpg')
+            time.sleep(sleep)
+            #print(metadata)
+            fps=1.0 / (time.time() - start_time)
+            if fps>ConfigLoader.get_value("CAPTURE_PICAMERA_FPS"):
+                time.sleep()
+
+    else:
 
 
 if __name__ == "__main__":
