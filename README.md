@@ -3,7 +3,9 @@
 Introduction
 ============
 
-Aribbada Smart Camera - is a project which aims to perform with the help of artificial intelligence the detection (during the day and at night) and alerting people when a wild animal appears in the area of interest
+This project aims to reduce Human-wildlife conflict with the help of video surveillance and artificial intelligence.
+The idea is to use a camera for 24h video surveillance and machine learning to detect and alert for animals that pose a threat livelihood or safety of the people in the area.
+
 
 Structure
 ============
