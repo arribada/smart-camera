@@ -1,7 +1,7 @@
 import config_loader
 import os
 import time
-
+import sys
 from telegram import Bot
 
 
@@ -25,9 +25,16 @@ def main(argv):
             # along with last modification time of file
 
             for file in list_of_files:
-                bot.send_photo(channel_id,photo=open(os.path.join(dir_name, file),"rb"))
-                time.sleep(3)
-                os.remove(os.path.join(dir_name, file))
+                try:
+                    bot.send_photo(channel_id,photo=open(os.path.join(dir_name, file),"rb"))
+                except Exception as ex:
+                    print(ex)
+                else:
+                    time.sleep(0.5)
+                    os.remove(os.path.join(dir_name, file))
             time.sleep(10)
         except Exception as ex:
             print(ex)
+
+if __name__ == "__main__":
+   main(sys.argv[1:])

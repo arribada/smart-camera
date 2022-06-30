@@ -13,8 +13,12 @@ class Rois():
     def choose_ROIs(self,frame):
         self.frame=frame
         self.save=frame
-        self.listRois=config_loader.get_value("MOTION_ROI")
-
+        self.listRois=[(config_loader.get_value("MOTION_ROI")[0],
+                        config_loader.get_value("MOTION_ROI")[1],
+                         config_loader.get_value("MOTION_ROI")[2],
+                          config_loader.get_value("MOTION_ROI")[3])]
+     
+        
     def check_if_overlapping(self, x, y, w, h):
         for roi in self.listRois:
             return not (roi[0][0]+roi[1][0] < x or roi[0][0] > x+w or roi[0][1] < y+h or roi[0][1]+roi[1][1] > y)

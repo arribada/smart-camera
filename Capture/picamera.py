@@ -36,6 +36,7 @@ def main(argv):
         config_loader.load_config(args[0])
         if config_loader.get_value("CAPTURE_PICAMERA_FPS") == 0:
             try:
+          
                 fps_needed = float(config_loader.get_value("CAPTURE_STREAM_FPS"))
 
                 vcap = cv2.VideoCapture(config_loader.get_value("CAPTURE_STREAM_URL"), cv2.CAP_FFMPEG)
@@ -68,7 +69,6 @@ def main(argv):
 
                 #catch Ctrl C
                 signal.signal(signal.SIGINT, handler)
-
                 #loop and save captured image every x seconds
                 while True:
                     start_time = time.time()
