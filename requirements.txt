@@ -1,3 +1,5 @@
+APScheduler==3.6.3
+cachetools==4.2.2
 certifi==2020.6.20
 chardet==4.0.0
 colorzero==1.1
@@ -27,6 +29,9 @@ PyQt5==5.15.2
 PyQt5-sip==12.8.1
 python-apt==2.2.1
 python-prctl==1.7
+python-telegram-bot==13.12
+pytz==2022.1
+pytz-deprecation-shim==0.1.0.post0
 PyYAML==6.0
 requests==2.25.1
 RPi.GPIO==0.7.0
@@ -34,5 +39,8 @@ simplejpeg==1.6.4
 six==1.16.0
 spidev==3.5
 ssh-import-id==5.10
+tornado==6.1
+tzdata==2022.1
+tzlocal==4.2
 urllib3==1.26.5
 v4l2-python3==0.3.1

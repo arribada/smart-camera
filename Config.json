@@ -1,0 +1,29 @@
+{
+	"CAPTURE": {
+		"PICAMERA": {
+			"FPS": 1
+		},
+		"STREAM": {
+			"URL": "",
+			"FPS": 1
+		}
+	},
+	"MOTION": {
+		"ROI": [
+			10,
+			10,
+			100,
+			100
+		]
+	},
+	"DETECTION": {
+		"NETWORK": "/home/",
+		"UPLOADEDGE": 1
+	},
+	"ALERT": {
+		"CHANNELID": "111",
+		"TOKEN": "xxx"
+	},
+	"DEBUG": 1,
+	"DATAFOLDER": "/home"
+}
